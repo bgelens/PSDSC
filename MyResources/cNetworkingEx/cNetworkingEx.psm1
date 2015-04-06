@@ -1,29 +1,21 @@
-enum Ensure
-{
-    Present
-    Absent
-}
-
 [DscResource()]
 class cLMHOSTLookup
 {
     #LMHOST lookup is enable / disabled system wide for all adapters.
-    [DscProperty(Mandatory)]
-    [Ensure]$Ensure
-
     [DscProperty(Key)]
-    [String]$WINSEnableLMHostsLookup
+    [ValidateSet('Enabled','Disabled')]
+    [String]$LMHOSTLookup
 
-
-    [Void]Set()
-    {
-        Invoke-CimMethod -ClassName Win32_NetworkAdapterConfiguration -MethodName EnableWINS -Arguments @{DNSEnabledForWINSResolution = $false; WINSEnableLMHostsLookup = $false}
+    [DscProperty(NotConfigurable)]
+    [Bool]$Enabled
+    
+    [Void]Set() {
+        Invoke-CimMethod -ClassName Win32_NetworkAdapterConfiguration -MethodName EnableWINS -Arguments @{WINSEnableLMHostsLookup = $this.WINSEnableLMHostsLookup($this.LMHOSTLookup)}
     }
     
-    [Bool]Test()
-    {
+    [Bool]Test() {
         $CimInstance = Get-CimInstance -ClassName Win32_NetworkAdapterConfiguration -Filter 'IPEnabled = TRUE'
-        if ($CimInstance.DNSEnabledForWINSResolution -eq $this.DNSEnabledForWINSResolution -and $CimInstance.WINSEnableLMHostsLookup -eq $this.WINSEnableLMHostsLookup) {
+        if ($CimInstance[0].WINSEnableLMHostsLookup -eq $this.WINSEnableLMHostsLookup($this.LMHOSTLookup)) {
             return $true
         }
         else {
@@ -32,13 +24,24 @@ class cLMHOSTLookup
         
     }
 
-    [cLMHOSTLookup]Get()
-    {
-        return @{}
+    [cLMHOSTLookup]Get() {
+        return @{
+            LMHOSTLookup = $this.LMHOSTLookup
+            Enabled = $this.WINSEnableLMHostsLookup($this.LMHOSTLookup)
+        }
+    }
+
+    [bool]WINSEnableLMHostsLookup([String] $LMHOSTLookup) {
+        if ($LMHOSTLookup -eq 'Enabled') {
+            return $true
+        }
+        else {
+            return $false
+        }
     }
 }
 
-
+<#
 [DscResource()]
 class cNETBIOS
 {
@@ -63,3 +66,7 @@ class cNETBIOS
 }
 
 #Get-CimInstance win32_networkadapterconfiguration -filter 'IPEnabled=TRUE' | Invoke-CimMethod -MethodName settcpipnetbios -Arguments @{TcpipNetbiosOptions = 2}
+
+#Invoke-CimMethod -ClassName Win32_NetworkAdapterConfiguration -MethodName EnableWINS -Arguments @{DNSEnabledForWINSResolution = $false}
+
+#>
