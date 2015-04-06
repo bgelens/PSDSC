@@ -39,3 +39,30 @@ configuration LMHOST {
     }
 }
 ```
+
+cNETBIOS
+========
+cNETBIOS Configures the NETBIOS over TCP/IP settings of a network adapter.
+##Synax
+```
+cNETBIOS [String]
+{
+    InterfaceName = [string]
+    NETBIOSSetting = [string]{ DHCPDefined | Disable | Enable }
+    [DependsOn = [string[]]]
+    [PsDscRunAsCredential = [PSCredential]]
+}
+```
+The IntefaceName property must be de the Interface Alias name (e.g. Ethernet)
+
+The NETBIOSSetting property defines the desired configuration of the adapter specified.
+##Configuration
+```
+configuration NETBIOS {
+    Import-DscResource -ModuleName cNetworkingEx
+    cNETBIOS Disable {
+        InterfaceName = 'Ethernet'
+        NETBIOSSetting = 'Disable'
+    }
+}
+```

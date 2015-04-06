@@ -5,3 +5,11 @@
         LMHOSTLookup = 'Disabled'
     }
 }
+
+configuration NETBIOS {
+    Import-DscResource -ModuleName cNetworkingEx
+    cNETBIOS Disable {
+        InterfaceName = 'Ethernet'
+        NETBIOSSetting = 'Disable'
+    }
+}

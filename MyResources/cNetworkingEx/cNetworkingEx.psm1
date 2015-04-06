@@ -53,3 +53,88 @@ class cLMHOSTLookup {
         }
     }
 }
+
+
+enum NETBIOSSetting {
+    DHCPDefined;
+    Enable;
+    Disable;
+}
+
+[DscResource()]
+class cNETBIOS
+{
+    # netbios is handles per adapter ipv4 stack. can have 3 settings: Default (DHCP defined or Enabled), Enabled and Disabled
+    [DscProperty(Key)]
+    [String]$InterfaceName
+
+    [DscProperty(Mandatory)]
+    [NETBIOSSetting]$NETBIOSSetting
+
+    [DscProperty(NotConfigurable)]
+    [String]$ActiveSetting
+
+    [Void]Set() {
+        $ErrorActionPreference = 'Stop'
+        try {
+            $NetAdapterConfig = Get-CimInstance -ClassName Win32_NetworkAdapter | 
+                ?{$_.NetConnectionID -eq $this.InterfaceName} |
+                    Get-CimAssociatedInstance -ResultClassName Win32_NetworkAdapterConfiguration 
+            if ($this.NETBIOSSetting -eq [NETBIOSSetting]::DHCPDefined) {
+                Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\NetBT\Parameters\Interfaces\Tcpip_$($NetAdapterConfig.SettingID)" -Name NetbiosOptions -Value 0
+            }
+            else {
+                $NetAdapterConfig | Invoke-CimMethod -MethodName settcpipnetbios -Arguments @{TcpipNetbiosOptions = [uint32]$($this.SettingToIndex([NETBIOSSetting]::$($this.NETBIOSSetting)))}
+            }
+        }
+        catch {
+            throw "Exeption happened: $($_.exception.message)"
+        }
+    }
+
+    [Bool]Test() {
+        $ErrorActionPreference = 'Stop'
+        try {
+            $NIC = Get-CimInstance -ClassName Win32_NetworkAdapter| ?{$_.NetConnectionID -eq $this.InterfaceName}
+            Write-Verbose -Message "Interface $($this.InterfaceName) detected with Index number: $($NIC.InterfaceIndex)"
+
+            $NICConfig = $NIC | Get-CimAssociatedInstance -ResultClassName win32_networkadapterconfiguration
+            Write-Verbose -Message "Current Netbios Configuration: $($this.IndexToSetting($NICConfig.TcpipNetbiosOptions))"
+
+            $DesiredSetting = ([NETBIOSSetting]::$($this.NETBIOSSetting)).value__
+            Write-Verbose -Message "Desired Netbios Configuration: $($this.NETBIOSSetting)"
+
+            if ($NICConfig.TcpipNetbiosOptions -eq $DesiredSetting) {
+                return $true
+            }
+            else {
+                return $false
+            }
+        }
+        catch {
+            throw "Exeption happened: $($_.exception.message)"
+        }
+    }
+
+    [cNETBIOS]Get() {
+        return @{
+            InterfaceName = $this.InterfaceName
+            NETBIOSSetting = $this.NETBIOSSetting
+            ActiveSetting = $this.IndexToSetting($this.ActiveSettingIndex())
+        }
+    }
+
+    [Int]SettingToIndex([String] $Setting) {
+        return ([NETBIOSSetting]::$Setting).value__
+    }
+
+    [String]IndexToSetting([int] $Index) {
+        return [NETBIOSSetting].GetEnumValues()[$Index]
+    }
+
+    [Int]ActiveSettingIndex() {
+        $NICConfig = Get-CimInstance -ClassName Win32_NetworkAdapter| ?{$_.NetConnectionID -eq $this.InterfaceName} |
+            Get-CimAssociatedInstance -ResultClassName win32_networkadapterconfiguration
+        return $NICConfig.TcpipNetbiosOptions
+    }
+}
