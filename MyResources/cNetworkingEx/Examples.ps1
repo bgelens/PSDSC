@@ -1,9 +1,7 @@
-﻿configuration lmhost
-{
+﻿configuration LMHOST {
     Import-DscResource -ModuleName cNetworkingEx
-    cLMHOSTLookup disable
-    {
+    cLMHOSTLookup Disable {
+        Name = 'Disable LMHOST Lookup'
         LMHOSTLookup = 'Disabled'
-
     }
 }
