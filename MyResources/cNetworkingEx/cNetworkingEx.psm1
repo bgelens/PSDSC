@@ -27,11 +27,11 @@ class cLMHOSTLookup {
         $CimInstance = Get-CimInstance -ClassName Win32_NetworkAdapterConfiguration -Filter 'IPEnabled = TRUE'
         Write-Verbose -Message "Current state use LMHOST: $($CimInstance[0].WINSEnableLMHostsLookup)"
         if ($CimInstance[0].WINSEnableLMHostsLookup -eq $this.WINSEnableLMHostsLookup($this.LMHOSTLookup)) {
-            Write-Verbose -Message "Desired state is the same as current state: $($this.WINSEnableLMHostsLookup)"
+            Write-Verbose -Message "Desired state is the same as current state: $($this.LMHOSTLookup)"
             return $true
         }
         else {
-            Write-Verbose -Message "Desired state is not the same as current state: $($this.WINSEnableLMHostsLookup)"
+            Write-Verbose -Message "Desired state is not the same as current state: $($this.LMHOSTLookup)"
             return $false
         } 
     }
