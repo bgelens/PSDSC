@@ -3,7 +3,7 @@
     Import-DscResource -ModuleName cNetworkingEx
     cLMHOSTLookup disable
     {
-        LMHOSTLookup = 'Enabled'
+        LMHOSTLookup = 'Disabled'
 
     }
 }
