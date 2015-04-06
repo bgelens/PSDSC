@@ -53,33 +53,3 @@ class cLMHOSTLookup {
         }
     }
 }
-
-<#
-[DscResource()]
-class cNETBIOS
-{
-    # netbios is handles per adapter ipv4 stack. can have 3 settings: Default (DHCP defined or Enabled), Enabled and Disabled
-    [DscProperty(Key)]
-    [String]$InterfaceAlias
-
-    [DscProperty(Mandatory)]
-    [Bool]$DNSEnabledForWINSResolution
-
-    [Void]Set() {
-
-    }
-
-    [Bool]Test() {
-        return $true
-    }
-
-    [cNETBIOS]Get() {
-        return @{}
-    }
-}
-
-#Get-CimInstance win32_networkadapterconfiguration -filter 'IPEnabled=TRUE' | Invoke-CimMethod -MethodName settcpipnetbios -Arguments @{TcpipNetbiosOptions = 2}
-
-#Invoke-CimMethod -ClassName Win32_NetworkAdapterConfiguration -MethodName EnableWINS -Arguments @{DNSEnabledForWINSResolution = $false}
-
-#>
