@@ -64,7 +64,6 @@ enum NETBIOSSetting {
 [DscResource()]
 class cNETBIOS
 {
-    # netbios is handles per adapter ipv4 stack. can have 3 settings: Default (DHCP defined or Enabled), Enabled and Disabled
     [DscProperty(Key)]
     [String]$InterfaceName
 
@@ -81,6 +80,7 @@ class cNETBIOS
                 ?{$_.NetConnectionID -eq $this.InterfaceName} |
                     Get-CimAssociatedInstance -ResultClassName Win32_NetworkAdapterConfiguration 
             if ($this.NETBIOSSetting -eq [NETBIOSSetting]::DHCPDefined) {
+                #If DHCP is not enabled, settcpipnetbios CIM Method won't take 0.
                 Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\NetBT\Parameters\Interfaces\Tcpip_$($NetAdapterConfig.SettingID)" -Name NetbiosOptions -Value 0
             }
             else {
