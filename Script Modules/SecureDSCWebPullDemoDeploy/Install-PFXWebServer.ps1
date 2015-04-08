@@ -28,9 +28,9 @@
     process
     {
         #region checks
-        if (!([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator"))
+        if (!([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] 'Administrator'))
         {
-            Write-Verbose 'Script can only run elevated' -Verbose
+            Write-Verbose -Message 'Script can only run elevated'
             break
         }
         #endregion checks
@@ -44,12 +44,11 @@
             -DnsName $PFXFQDN `
             -CertStoreLocation Cert:\LocalMachine\My `
             -Credential $CertificateCredentials `
-            -ErrorAction Stop `
-            -Verbose
+            -ErrorAction Stop
         }
         catch
         {
-            Write-Verbose 'Certificate Request did not complete successfully' -Verbose
+            Write-Verbose -Message 'Certificate Request did not complete successfully'
             break
         }
         #endregion request webserver certificate
@@ -63,7 +62,7 @@
         #endregion prepare website directory
     
         #region import webadmin ps module
-        Import-Module 'C:\Windows\system32\WindowsPowerShell\v1.0\Modules\WebAdministration\WebAdministration.psd1'
+        Import-Module -Name 'C:\Windows\system32\WindowsPowerShell\v1.0\Modules\WebAdministration\WebAdministration.psd1'
         #endregion import webadmin ps module
     
         #region configure IIS Aplication Pool
@@ -89,49 +88,49 @@
         #endregion unlock config data
     
         #region disabe anonymous logon
-        Set-WebConfigurationProperty -PSPath $WebSite.PSPath  -Filter "system.webServer/security/authentication/anonymousAuthentication" -Name "enabled" -Value "False" -Force
+        Set-WebConfigurationProperty -PSPath $WebSite.PSPath  -Filter 'system.webServer/security/authentication/anonymousAuthentication' -Name 'enabled' -Value 'False' -Force
         #endregion disable anonymous logon
     
         #region require client auth certificates
-        Set-WebConfiguration -PSPath $WebSite.PSPath -Filter 'system.webserver/security/access' -Value "Ssl, SslNegotiateCert, SslRequireCert, Ssl128" -Force
+        Set-WebConfiguration -PSPath $WebSite.PSPath -Filter 'system.webserver/security/access' -Value 'Ssl, SslNegotiateCert, SslRequireCert, Ssl128' -Force
         #endregion require client auth certificates
     
         #region create local user for Cert mapping
         # nice simple password generation one-liner by G.A.F.F Jakobs
         # https://gallery.technet.microsoft.com/scriptcenter/Simple-random-code-b2c9c9c9
-        $PFXUserPWD = ([char[]](Get-Random -Input $(48..57 + 65..90 + 97..122) -Count 12)) -join "" 
+        $PFXUserPWD = ([char[]](Get-Random -InputObject $(48..57 + 65..90 + 97..122) -Count 12)) -join '' 
         
-        $Computer = [ADSI]"WinNT://.,Computer"
-        $PFXUser = $Computer.Create("User", "PFXUser")
+        $Computer = [ADSI]'WinNT://.,Computer'
+        $PFXUser = $Computer.Create('User', 'PFXUser')
         $PFXUser.SetPassword($PFXUserPWD)
         $PFXUser.SetInfo()
-        $PFXUser.Description = "PFX User for Client Certificate Authentication binding "
+        $PFXUser.Description = 'PFX User for Client Certificate Authentication binding '
         $PFXUser.SetInfo()
         $PFXUser.UserFlags = 64 + 65536 # ADS_UF_PASSWD_CANT_CHANGE + ADS_UF_DONT_EXPIRE_PASSWD
         $PFXUser.SetInfo()
-        ([ADSI]"WinNT://./IIS_IUSRS,group").Add("WinNT://PFXUser,user")  
+        ([ADSI]'WinNT://./IIS_IUSRS,group').Add('WinNT://PFXUser,user')  
         #endregion create local user for Cert mapping
     
         #region configure certificate mapping
-        Add-WebConfigurationProperty -PSPath $WebSite.PSPath -Filter "system.webServer/security/authentication/iisClientCertificateMappingAuthentication/manyToOneMappings" -Name "." -Value @{
+        Add-WebConfigurationProperty -PSPath $WebSite.PSPath -Filter 'system.webServer/security/authentication/iisClientCertificateMappingAuthentication/manyToOneMappings' -Name '.' -Value @{
             name        = 'PFX Web Client'
             description = 'PFX Web Client'
             userName    = 'PFXUser'
             password    = $PFXUserPWD
         }
-        Add-WebConfigurationProperty -PSPath $WebSite.PSPath -Filter "system.webServer/security/authentication/iisClientCertificateMappingAuthentication/manyToOneMappings/add[@name='PFX Web Client']/rules" -Name "." -Value @{
+        Add-WebConfigurationProperty -PSPath $WebSite.PSPath -Filter "system.webServer/security/authentication/iisClientCertificateMappingAuthentication/manyToOneMappings/add[@name='PFX Web Client']/rules" -Name '.' -Value @{
             certificateField     = 'Issuer'
             certificateSubField  = 'CN'
             matchCriteria        = $PFXWebCert.Certificate.Issuer.Split(',')[0].trimstart('CN=')
             compareCaseSensitive = 'False'
         }
-        Set-WebConfigurationProperty -PSPath $WebSite.PSPath -Filter "system.webServer/security/authentication/iisclientCertificateMappingAuthentication" -Name "enabled" -Value "True"
-        Set-WebConfigurationProperty -PSPath $WebSite.PSPath -Filter "system.webServer/security/authentication/iisclientCertificateMappingAuthentication" -Name "manyToOneCertificateMappingsEnabled" -Value "True"
-        Set-WebConfigurationProperty -PSPath $WebSite.PSPath -Filter "system.webServer/security/authentication/iisClientCertificateMappingAuthentication" -Name "oneToOneCertificateMappingsEnabled" -Value "False"
+        Set-WebConfigurationProperty -PSPath $WebSite.PSPath -Filter 'system.webServer/security/authentication/iisclientCertificateMappingAuthentication' -Name 'enabled' -Value 'True'
+        Set-WebConfigurationProperty -PSPath $WebSite.PSPath -Filter 'system.webServer/security/authentication/iisclientCertificateMappingAuthentication' -Name 'manyToOneCertificateMappingsEnabled' -Value 'True'
+        Set-WebConfigurationProperty -PSPath $WebSite.PSPath -Filter 'system.webServer/security/authentication/iisClientCertificateMappingAuthentication' -Name 'oneToOneCertificateMappingsEnabled' -Value 'False'
         #endregion configure certificate mapping
     
         #region configure deny other client certificates
-        Add-WebConfigurationProperty -PSPath $WebSite.PSPath -Filter "system.webServer/security/authentication/iisClientCertificateMappingAuthentication/manyToOneMappings" -name "." -value @{
+        Add-WebConfigurationProperty -PSPath $WebSite.PSPath -Filter 'system.webServer/security/authentication/iisClientCertificateMappingAuthentication/manyToOneMappings' -name '.' -value @{
             name           = 'Deny'
             description    = 'Deny'
             permissionMode = 'Deny'
@@ -140,7 +139,7 @@
     
         #region set WebFolder ACL
         $Acl = Get-Acl -Path C:\PFXSite
-        $Ar = New-Object System.Security.AccessControl.FileSystemAccessRule("PFXUser","ReadAndExecute, Synchronize","ContainerInherit, ObjectInherit","None","Allow")
+        $Ar = New-Object -TypeName System.Security.AccessControl.FileSystemAccessRule -ArgumentList ('PFXUser','ReadAndExecute, Synchronize','ContainerInherit, ObjectInherit','None','Allow')
         $Acl.SetAccessRule($Ar)
         Set-Acl -Path C:\PFXSite -AclObject $Acl
         #endregion set WebFolder ACL
