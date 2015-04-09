@@ -194,7 +194,9 @@ function Install-DSCWebPullServer
             
         [Parameter(Mandatory,
         ValueFromPipelineByPropertyName)]
-        [String]$DSCPullFQDN
+        [String]$DSCPullFQDN,
+
+        [Switch]$RemoveDefaultWebSite
     )
     #endregion params
     
@@ -374,8 +376,11 @@ function Install-DSCWebPullServer
         #endregion enable CAPI2 Operational Log
     
         #region remove default web site
-        Stop-Website -Name 'Default Web Site'
-        Remove-Website -Name 'Default Web Site'
+        if ($RemoveDefaultWebSite)
+        {
+            Stop-Website -Name 'Default Web Site'
+            Remove-Website -Name 'Default Web Site'
+        }
         #endregion remove default web site
     }
 
