@@ -12,6 +12,9 @@
             NetworkReference = 'Internal'
             TokenSource = 'ADFS'
             TokenURL = 'https://sts.bgelens.nl'
+            TokenPort = 443
+            Ensure = 'Present'
+            Port = 443
             VMRoleParameters = @{
                 VMRoleAdminCredential = 'Administrator:P@$Sw0rd!'
                 DSCPullServerClientConfigurationId = '7844f909-1f2e-4770-9c97-7a2e2e5677ae'
